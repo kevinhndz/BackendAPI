@@ -19,7 +19,14 @@ class ProductosRepository():
     @staticmethod
     def obtener_productos(db: Session, salto: int, limite: int):
         total_registros = db.query(Productos).count()
-        productos = db.query(Productos).offset(salto).limit(limite).all()
+        productos = (
+            db.query(Productos)
+            # El orden por id evita que un producto cambie de pagina entre consultas.
+            .order_by(Productos.id)
+            .offset(salto)
+            .limit(limite)
+            .all()
+        )
         
         pagina_actual = (salto // limite) + 1
         total_paginas = math.ceil(total_registros / limite) if total_registros > 0 else 1

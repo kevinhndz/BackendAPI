@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Path, Query, status
 from sqlalchemy.orm import Session
 from database.almacen import abrir_puerta
 from modules.productos.schema import (
@@ -17,7 +17,11 @@ router = APIRouter(
     dependencies=[Depends(permiso_usuario)]
 )
 
-@router.post("/", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=ProductoRespuesta,
+    status_code=status.HTTP_201_CREATED
+)
 def crear_nuevo_producto(
     json: Revisar_JSON_Crear_Producto, 
     db: Session = Depends(abrir_puerta),
@@ -25,29 +29,47 @@ def crear_nuevo_producto(
 ):
     return service.crear_producto(db, json)
 
-@router.get("/",response_model=RespuestaPaginada[ProductoRespuesta],
-    status_code=status.HTTP_200_OK)
+@router.get(
+    "/",
+    response_model=RespuestaPaginada[ProductoRespuesta],
+    status_code=status.HTTP_200_OK
+)
 def obtener_productos(
     salto: int = Query(default=0, ge=0),
-    limite: int = Query(default=10, ge=1),
+    # El maximo protege la base de datos de respuestas demasiado grandes.
+    limite: int = Query(default=10, ge=1, le=100),
     db: Session = Depends(abrir_puerta),
     usuario: dict = Depends(permiso_admin)
 ):
     return service.obtener_productos_service(db, salto, limite)
 
-@router.put("/{id}")
+
+@router.get(
+    "/{id}",
+    response_model=ProductoRespuesta,
+    status_code=status.HTTP_200_OK
+)
+def obtener_producto(
+    id: int = Path(ge=1),
+    db: Session = Depends(abrir_puerta),
+    usuario: dict = Depends(permiso_usuario)
+):
+    return service.obtener_producto_por_id(db, id)
+
+
+@router.put("/{id}", response_model=ProductoRespuesta)
 def editar(
-    id: int, 
-    json: Revisar_JSON_Editar_Producto, 
+    json: Revisar_JSON_Editar_Producto,
+    id: int = Path(ge=1),
     db: Session = Depends(abrir_puerta),
     usuario: dict = Depends(permiso_admin)
 ):
     return service.editar_producto(db, json, id)
 
-@router.patch("/{id}")
+@router.patch("/{id}", response_model=ProductoRespuesta)
 def editar_parcial(
-    id: int, 
-    json: Revisar_JSON_Editar_Producto_Parcial, 
+    json: Revisar_JSON_Editar_Producto_Parcial,
+    id: int = Path(ge=1),
     db: Session = Depends(abrir_puerta),
     usuario: dict = Depends(permiso_admin)
 ):
@@ -55,7 +77,7 @@ def editar_parcial(
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def eliminar(
-    id: int, 
+    id: int = Path(ge=1),
     db: Session = Depends(abrir_puerta),
     usuario: dict = Depends(permiso_admin)
 ):
