@@ -26,6 +26,20 @@ def test_crear_producto_rechaza_datos_invalidos(cliente):
     assert respuesta.status_code == 422
 
 
+def test_crear_producto_rechaza_codigo_duplicado(cliente, crear_producto):
+    crear_producto(codigo="REP-001")
+
+    respuesta = cliente.post(
+        "/products/",
+        json={"nombre": "Producto repetido", "stock": 5, "codigo": "REP-001"}
+    )
+
+    assert respuesta.status_code == 409
+    assert respuesta.json()["detail"] == (
+        "Producto con este codigo ya esta registrado"
+    )
+
+
 def test_listar_productos_paginados(cliente, crear_producto):
     crear_producto(nombre="Producto uno", codigo="PRO-001")
     crear_producto(nombre="Producto dos", codigo="PRO-002")
@@ -98,6 +112,23 @@ def test_editar_producto_completo(cliente, crear_producto):
     assert respuesta.json()["codigo"] == "TEC-002"
 
 
+def test_editar_producto_completo_rechaza_codigo_duplicado(
+    cliente,
+    crear_producto
+):
+    crear_producto(nombre="Producto uno", codigo="REP-001")
+    producto_dos = crear_producto(nombre="Producto dos", codigo="REP-002")
+
+    respuesta = cliente.put(
+        f"/products/{producto_dos['id']}",
+        json={"nombre": "Producto dos", "stock": 10, "codigo": "REP-001"}
+    )
+
+    assert respuesta.status_code == 409
+    producto_guardado = cliente.get(f"/products/{producto_dos['id']}").json()
+    assert producto_guardado["codigo"] == "REP-002"
+
+
 def test_editar_producto_parcial(cliente, crear_producto):
     producto = crear_producto()
 
@@ -109,6 +140,23 @@ def test_editar_producto_parcial(cliente, crear_producto):
     assert respuesta.status_code == 200
     assert respuesta.json()["nombre"] == producto["nombre"]
     assert respuesta.json()["stock"] == 50
+
+
+def test_editar_producto_parcial_rechaza_codigo_duplicado(
+    cliente,
+    crear_producto
+):
+    crear_producto(nombre="Producto uno", codigo="REP-001")
+    producto_dos = crear_producto(nombre="Producto dos", codigo="REP-002")
+
+    respuesta = cliente.patch(
+        f"/products/{producto_dos['id']}",
+        json={"codigo": "REP-001"}
+    )
+
+    assert respuesta.status_code == 409
+    producto_guardado = cliente.get(f"/products/{producto_dos['id']}").json()
+    assert producto_guardado["codigo"] == "REP-002"
 
 
 def test_editar_producto_parcial_rechaza_cuerpo_vacio(cliente, crear_producto):

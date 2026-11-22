@@ -61,6 +61,15 @@ def cliente():
 
 
 @pytest.fixture
+def sesion_pruebas():
+    db = SesionPruebas()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+@pytest.fixture
 def crear_producto(cliente):
     def crear(
         nombre="Teclado mecanico",

@@ -10,10 +10,10 @@ class ProductosRepository():
         return check
         
     @staticmethod
-    def crear_nuevo_producto(db: Session, new_product: dict) -> dict:
+    def crear_nuevo_producto(db: Session, new_product: Productos) -> Productos:
         db.add(new_product)
-        db.commit()          
-        db.refresh(new_product) 
+        # flush envia la operacion a la base sin confirmar la transaccion.
+        db.flush()
         return new_product
 
     @staticmethod
@@ -44,18 +44,19 @@ class ProductosRepository():
         return db.query(Productos).filter(Productos.id == id).first()
     
     @staticmethod
-    def guardar_cambios_put(db: Session, producto_editado: dict) -> dict:
-        db.commit()
-        db.refresh(producto_editado)
+    def guardar_cambios_put(
+        db: Session,
+        producto_editado: Productos
+    ) -> Productos:
+        db.flush()
         return producto_editado
 
     @staticmethod
     def guardar_cambios_patch(db: Session, producto: Productos) -> Productos:
-        db.commit()
-        db.refresh(producto)
+        db.flush()
         return producto
 
     @staticmethod
     def eliminar_producto(db: Session, producto: Productos) -> None:
         db.delete(producto)
-        db.commit()
+        db.flush()
