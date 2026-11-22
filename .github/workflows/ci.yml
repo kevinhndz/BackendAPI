@@ -1,0 +1,39 @@
+name: Pruebas del backend
+
+on:
+  push:
+    branches:
+      - master
+      - validaciones/http
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  pruebas:
+    runs-on: ubuntu-latest
+
+    env:
+      # CI usa una base aislada y nunca necesita las credenciales de produccion.
+      DATABASE_URL: sqlite://
+      SECRET_KEY: clave-exclusiva-para-ci
+
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Instalar dependencias
+        run: python -m pip install -r requirements.txt
+
+      - name: Revisar sintaxis
+        # compileall detecta errores de sintaxis antes de comenzar las pruebas.
+        run: python -m compileall -q main.py core database modules utils tests
+
+      - name: Ejecutar pruebas de todos los endpoints
+        run: python -m pytest -q
