@@ -33,13 +33,22 @@ class ProductosService():
     @staticmethod
     def obtener_productos_service(db: Session, salto: int, limite: int):
         resultado = repo.obtener_productos(db, salto, limite)
-        
-        if resultado is None:
-            logger.info("No hay productos registrados")  # AGREGADO
-            raise RecursoNoEncontradoError("No hay productos registrados")
-        else:
-            logger.info(f"Obtenidos {len(resultado['data'])} productos, página {resultado['pagina_actual']}")  #
-            return resultado
+
+        # Una coleccion vacia sigue siendo una respuesta valida para el cliente.
+        logger.info(
+            f"Obtenidos {len(resultado['data'])} productos, "
+            f"pagina {resultado['pagina_actual']}"
+        )
+        return resultado
+
+    @staticmethod
+    def obtener_producto_por_id(db: Session, id: int):
+        producto = repo.buscar_por_id(db, id)
+
+        if producto is None:
+            raise RecursoNoEncontradoError("No se encontro el recurso")
+
+        return producto
         
     
     @staticmethod
