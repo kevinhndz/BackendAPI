@@ -30,7 +30,7 @@ class Revisar_JSON_Editar_Producto_Parcial(BaseModel):
         pattern=r"^[A-Za-z0-9-]+$"
     )
 
-    @model_validator(mode="before")
+    @model_validator(mode="before") # Ejecuta la funcion de abajo antes de aceptar el JSON.
     @classmethod
     def validar_campos_enviados(cls, datos):
         # Un PATCH vacio no representa ningun cambio y debe rechazarse.
@@ -38,8 +38,9 @@ class Revisar_JSON_Editar_Producto_Parcial(BaseModel):
             raise ValueError("Debe enviar al menos un campo para actualizar")
 
         # La tabla no permite valores nulos en los campos del producto.
-        if any(valor is None for valor in datos.values()):
-            raise ValueError("Los campos enviados no pueden ser nulos")
+        for valor in datos.values():
+            if valor is None:
+                raise ValueError("Los campos enviados no pueden ser nulos")
 
         return datos
     
