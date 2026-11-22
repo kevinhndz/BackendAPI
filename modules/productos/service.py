@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 import logging  #
 from modules.productos.repository import ProductosRepository as repo
 from modules.productos.model import Productos
@@ -26,7 +27,24 @@ class ProductosService():
             stock=json.stock,
             codigo=json.codigo
         )
-        result = repo.crear_nuevo_producto(db, new_product)
+        try:
+            result = repo.crear_nuevo_producto(db, new_product)
+            db.commit()
+            db.refresh(result)
+        except IntegrityError:
+            # rollback limpia la sesion despues de una operacion rechazada.
+            db.rollback()
+            logger.warning(
+                f"La base rechazo el codigo duplicado: {json.codigo}"
+            )
+            raise RecursoDuplicadoError(
+                "Producto con este codigo ya esta registrado"
+            )
+        except SQLAlchemyError:
+            db.rollback()
+            logger.exception("Fallo la creacion del producto")
+            raise
+
         logger.info(f"Producto creado: ID={result.id}, Código={result.codigo}")  
         return result
 
@@ -62,7 +80,20 @@ class ProductosService():
         check.nombre = json.nombre
         check.stock = json.stock
         check.codigo = json.codigo
-        result = repo.guardar_cambios_put(db, check)
+        try:
+            result = repo.guardar_cambios_put(db, check)
+            db.commit()
+            db.refresh(result)
+        except IntegrityError:
+            db.rollback()
+            raise RecursoDuplicadoError(
+                "Producto con este codigo ya esta registrado"
+            )
+        except SQLAlchemyError:
+            db.rollback()
+            logger.exception(f"Fallo la actualizacion del producto: ID={id}")
+            raise
+
         logger.info(f"Producto actualizado: ID={id}")  #
         return result
 
@@ -78,7 +109,22 @@ class ProductosService():
         for campo, valor in datos_actualizar.items():
             setattr(check, campo, valor)
             
-        result = repo.guardar_cambios_patch(db, check)
+        try:
+            result = repo.guardar_cambios_patch(db, check)
+            db.commit()
+            db.refresh(result)
+        except IntegrityError:
+            db.rollback()
+            raise RecursoDuplicadoError(
+                "Producto con este codigo ya esta registrado"
+            )
+        except SQLAlchemyError:
+            db.rollback()
+            logger.exception(
+                f"Fallo la actualizacion parcial del producto: ID={id}"
+            )
+            raise
+
         logger.info(f"Producto actualizado parcialmente: ID={id}")  
         return result
 
@@ -90,6 +136,13 @@ class ProductosService():
             logger.warning(f"Intento eliminar producto inexistente: ID={id}")  
             raise RecursoNoEncontradoError("No se encontro el recurso")
             
-        repo.eliminar_producto(db, check)
+        try:
+            repo.eliminar_producto(db, check)
+            db.commit()
+        except SQLAlchemyError:
+            db.rollback()
+            logger.exception(f"Fallo la eliminacion del producto: ID={id}")
+            raise
+
         logger.info(f"Producto eliminado: ID={id}")  
         return None
