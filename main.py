@@ -1,15 +1,11 @@
 import logging
 import time
-from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 
 from core.handlers import ExcepcionesGlobales
-from modules.Clients.router import router as router_clientes
 from modules.productos.router import router as router_productos
-from modules.usuarios.router import router as router_usuarios
 
 
 logging.basicConfig(level=logging.INFO)
@@ -26,8 +22,6 @@ app.add_middleware(
 
 ExcepcionesGlobales.registrar_handlers(app)
 app.include_router(router_productos)
-app.include_router(router_clientes)
-app.include_router(router_usuarios)
 
 
 @app.get("/api/health")
@@ -49,8 +43,3 @@ async def medir_tiempo(request: Request, call_next):
         tiempo,
     )
     return response
-
-
-# Keep the static frontend last so API routes take precedence.
-FRONTEND_DIR = Path(__file__).resolve().parent / "frontend"
-app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")

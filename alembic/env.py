@@ -15,9 +15,7 @@ from sqlalchemy import engine_from_config, pool
 load_dotenv()
 
 from database.almacen import miclaseBase
-from modules.Clients.model import Clients
 from modules.productos.model import Productos
-from modules.usuarios.model import Users
 
 # Configuracion de Alembic
 config = context.config
